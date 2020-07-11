@@ -31,7 +31,7 @@ General Public License for more details.
 @finalout
 @titlepage
 @title Org-roam User Manual
-@subtitle for version 1.1.1
+@subtitle for version 1.2.0
 @author Jethro Kuan
 @page
 @vskip 0pt plus 1filll
@@ -46,7 +46,7 @@ General Public License for more details.
 
 @noindent
 
-This manual is for Org-roam version 1.1.1.
+This manual is for Org-roam version 1.2.0.
 
 @quotation
 Copyright (C) 2020-2020 Jethro Kuan <jethrokuan95@@gmail.com>
@@ -78,6 +78,7 @@ General Public License for more details.
 * Roam Protocol::
 * Daily Notes::
 * Diagnosing and Repairing Files::
+* Performance Optimization::
 * Appendix::
 * FAQ::
 
@@ -124,6 +125,11 @@ Roam Protocol
 * The @samp{roam-file} protocol::
 * The @samp{roam-ref} Protocol::
 
+Performance Optimization
+
+* Profiling Key Operations::
+* Garbage Collection::
+
 Appendix
 
 * Note-taking Workflows::
@@ -131,6 +137,7 @@ Appendix
 
 Ecosystem
 
+* Browsing History with winner-mode::
 * Deft::
 * Org-journal::
 * Note-taking Add-ons::
@@ -302,6 +309,15 @@ operating system. You can verify that this is the case by executing:
 (executable-find "sqlite3")
 @end lisp
 
+If you have @code{sqlite3} installed, and @code{executable-find} still reports @code{nil}, then
+it is likely that the path to the executable is not a member of the Emacs
+variable @code{exec-path}. You may rectify this by manually adding the path within
+your Emacs configuration:
+
+@lisp
+(add-to-list 'exec-path "path/to/sqlite3")
+@end lisp
+
 @node Getting Started
 @chapter Getting Started
 
@@ -459,6 +475,10 @@ extracted as tags. That is, if a file is located at relative path
 @samp{'last-directory}: Extracts the last directory relative to
 @samp{org-roam-directory} as the tag. That is, if a file is located at relative
 path @samp{foo/bar/file.org}, the file will have tag @samp{bar}.
+@item
+@samp{'first-directory}: Extracts the first directory relative to
+@samp{org-roam-directory} as the tag. That is, if a file is located at relative
+path @samp{foo/bar/file.org}, the file will have tag @samp{foo}.
 @end enumerate
 
 By default, only the @samp{'prop} extraction method is enabled. To enable the other
@@ -505,8 +525,9 @@ The backlinks buffer will show any cites of this key: e.g.
 @node The Templating System
 @chapter The Templating System
 
-Rather than creating blank files on @samp{org-roam-insert} and @samp{org-roam-find-file}, it
-may be desirable to prefill the file with templated content. This may include:
+Rather than creating blank files on @code{org-roam-insert} and @code{org-roam-find-file},
+it may be desirable to prefill the file with templated content. This may
+include:
 
 @itemize
 @item
@@ -520,13 +541,17 @@ Any other data you may want to input manually
 @end itemize
 
 This requires a complex template insertion system. Fortunately, Org ships with a
-powerful one: @samp{org-capture}. However, org-capture was not designed for such use.
-Org-roam abuses @samp{org-capture}, extending its syntax. To first understand how
-org-roam's templating system works, it may be useful to look into basic usage of
-@samp{org-capture}.
+powerful one: @code{org-capture} (see @ref{capture,,,org,}). However, org-capture was not
+designed for such use. Org-roam abuses @code{org-capture}, extending its syntax and
+capabilities. To first understand how org-roam's templating system works, it may
+be useful to look into basic usage of @code{org-capture}.
 
-Org-roam's templates can be customized by modifying the variable
-@samp{org-roam-capture-templates}.
+For these reasons, Org-roam capture templates are not compatible with regular
+@code{org-capture}. Hence, Org-roam's templates can be customized by instead
+modifying the variable @code{org-roam-capture-templates}. Just like
+@code{org-capture-templates}, @code{org-roam-capture-templates} can contain multiple
+templates. If @code{org-roam-capture-templates} only contains one template, there
+will be no prompt for template selection.
 
 @menu
 * Template Walkthrough::
@@ -563,9 +588,12 @@ The template is given a description of @samp{"default"}.
 This template means don't insert any content, but place the cursor
 here.
 @item
-@samp{:file-name} is the file-name template for a new note, if it doesn't
-yet exist. This creates a file at path that looks like
-@samp{/path/to/org-roam-directory/20200213032037-foo.org}.
+@samp{:file-name} is the file-name template for a new note, if it doesn't yet
+exist. This creates a file at path that looks like
+@samp{/path/to/org-roam-directory/20200213032037-foo.org}. This template also
+allows you to specify if you want the note to go into a subdirectory. For
+example, the template @samp{private/$@{slug@}} will create notes in
+@samp{/path/to/org-roam-directory/private}.
 @item
 @samp{:head} contains the initial template to be inserted (once only), at
 the beginning of the file. Here, the title global attribute is
@@ -817,6 +845,15 @@ a function accepting a single argument: the graph file path.
 @end enumerate
 
 @samp{nil} uses @samp{view-file} to view the graph.
+
+If you are using WSL2 and would like to open the graph in Windows, you can use the second option to set the browser and network file path:
+
+@lisp
+(setq org-roam-graph-viewer
+    (lambda (file)
+      (let ((org-roam-graph-viewer "/mnt/c/Program Files/Mozilla Firefox/firefox.exe"))
+        (org-roam-graph--open (concat "file://///wsl$/Ubuntu" file)))))
+@end lisp
 @end itemize
 
 @menu
@@ -1036,6 +1073,28 @@ defaults write com.apple.LaunchServices/com.apple.launchservices.secure LSHandle
 
 Then restart your computer.
 
+For Windows, create a temporary @samp{org-protocol.reg} file:
+
+@example
+REGEDIT4
+
+[HKEY_CLASSES_ROOT\org-protocol]
+@@="URL:Org Protocol"
+"URL Protocol"=""
+[HKEY_CLASSES_ROOT\org-protocol\shell]
+[HKEY_CLASSES_ROOT\org-protocol\shell\open]
+[HKEY_CLASSES_ROOT\org-protocol\shell\open\command]
+@@="\"C:\\Windows\\System32\\wsl.exe\" emacsclient \"%1\""
+@end example
+
+The above will forward the protocol to WSL@. If you run Emacs natively on Windows, replace the last line with:
+
+@example
+@@="\"c:\\path\\to\\emacs\\bin\\emacsclientw.exe\"  \"%1\""
+@end example
+
+After executing the .reg file, the protocol is registered and you can delete the file.
+
 @node The @samp{roam-file} protocol
 @section The @samp{roam-file} protocol
 
@@ -1050,7 +1109,7 @@ This protocol finds or creates a new note with a given @code{roam_key} (see @ref
 
 @image{images/roam-ref,,,,gif}
 
-To use this, create a Firefox bookmarklet as follows:
+To use this, create the following @uref{https://en.wikipedia.org/wiki/Bookmarklet, bookmarklet} in your browser:
 
 @example
 javascript:location.href =
@@ -1064,7 +1123,7 @@ or as a keybinding in @code{qutebrowser} in , using the @code{config.py} file (s
 @uref{https://github.com/qutebrowser/qutebrowser/blob/master/doc/help/configuring.asciidoc, Configuring qutebrowser}):
 
 @example
-config.bind("<Ctrl-r>", "spawn bash -c 'emacsclient \"org-protocol://roam-ref?template=r&ref=@{url:pretty@}&title=@{title@}\" '")
+config.bind("<Ctrl-r>", "open javascript:location.href='org-protocol://roam-ref?template=r&ref='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)")
 @end example
 
 where @code{template} is the template key for a template in
@@ -1109,6 +1168,32 @@ checker, to perform autofixes for the errors. For each error detected,
 @samp{org-roam-doctor} will move the point to the current error, and pop-up a help
 window displaying the error message, as well as the list of actions that can be
 taken provided in @samp{:actions}.
+
+@node Performance Optimization
+@chapter Performance Optimization
+
+@menu
+* Profiling Key Operations::
+* Garbage Collection::
+@end menu
+
+@node Profiling Key Operations
+@section @strong{TODO} Profiling Key Operations
+
+@node Garbage Collection
+@section Garbage Collection
+
+During the cache-build process, Org-roam generates a lot of in-memory
+data-structures (such as the Org file's AST), which are discarded after use. These structures are garbage collected at regular intervals (see @ref{Garbage Collection,info:elisp#Garbage Collection,,elisp,}).
+
+Org-roam provides the option @code{org-roam-db-gc-threshold} to temporarily change
+the threshold value for GC to be triggered during these memory-intensive
+operations. To reduce the number of garbage collection processes, one may set
+@code{org-roam-db-gc-threshold} to a high value (such as @code{most-positive-fixnum}):
+
+@lisp
+(setq org-roam-db-gc-threshold most-positive-fixnum)
+@end lisp
 
 @node Appendix
 @chapter Appendix
@@ -1158,10 +1243,25 @@ taken provided in @samp{:actions}.
 A number of packages work well combined with Org-Roam:
 
 @menu
+* Browsing History with winner-mode::
 * Deft::
 * Org-journal::
 * Note-taking Add-ons::
 @end menu
+
+@node Browsing History with winner-mode
+@subsection Browsing History with winner-mode
+
+@code{winner-mode} is a global minor mode that allows one to undo and redo changes in the window configuration. It is included with GNU Emacs since version 20.
+
+@code{winner-mode} can be used as a simple version of browser history for Org-roam. Each click through org-roam links (from both Org files and the backlinks buffer) causes changes in window configuration, which can be undone and redone using @code{winner-mode}. To use @code{winner-mode}, simply enable it, and bind the appropriate interactive functions:
+
+@lisp
+(winner-mode +1)
+(define-key winner-mode-map (kbd "<M-left>") #'winner-undo)
+(define-key winner-mode-map (kbd "<M-right>") #'winner-redo)
+
+@end lisp
 
 @node Deft
 @subsection Deft

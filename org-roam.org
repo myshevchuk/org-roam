@@ -8,13 +8,13 @@
 #+texinfo_dir_category: Emacs
 #+texinfo_dir_title: Org-roam: (org-roam).
 #+texinfo_dir_desc: Rudimentary Roam Replica for Emacs.
-#+subtitle: for version 1.1.1
+#+subtitle: for version 1.2.0
 
 #+options: H:4 num:3 toc:2 creator:t
 #+property: header-args :eval never
 #+texinfo: @noindent
 
-This manual is for Org-roam version 1.1.1.
+This manual is for Org-roam version 1.2.0.
 
 #+BEGIN_QUOTE
 Copyright (C) 2020-2020 Jethro Kuan <jethrokuan95@gmail.com>
@@ -164,6 +164,15 @@ operating system. You can verify that this is the case by executing:
   (executable-find "sqlite3")
 #+END_SRC
 
+If you have ~sqlite3~ installed, and ~executable-find~ still reports ~nil~, then
+it is likely that the path to the executable is not a member of the Emacs
+variable ~exec-path~. You may rectify this by manually adding the path within
+your Emacs configuration:
+
+#+BEGIN_SRC emacs-lisp
+  (add-to-list 'exec-path "path/to/sqlite3")
+#+END_SRC
+
 * Getting Started
 
 This short tutorial describes the essential commands used in Org-roam, to help
@@ -297,6 +306,9 @@ extraction methods supported are:
 3. ='last-directory=: Extracts the last directory relative to
    =org-roam-directory= as the tag. That is, if a file is located at relative
    path =foo/bar/file.org=, the file will have tag =bar=.
+4. ='first-directory=: Extracts the first directory relative to
+   =org-roam-directory= as the tag. That is, if a file is located at relative
+   path =foo/bar/file.org=, the file will have tag =foo=.
 
 By default, only the ='prop= extraction method is enabled. To enable the other
 extraction methods, you may modify =org-roam-tag-sources=:
@@ -337,8 +349,9 @@ The backlinks buffer will show any cites of this key: e.g.
 [[file:images/org-ref-citelink.png]]
 * The Templating System
 
-Rather than creating blank files on =org-roam-insert= and =org-roam-find-file=, it
-may be desirable to prefill the file with templated content. This may include:
+Rather than creating blank files on ~org-roam-insert~ and ~org-roam-find-file~,
+it may be desirable to prefill the file with templated content. This may
+include:
 
 - Time of creation
 - File it was created from
@@ -346,13 +359,17 @@ may be desirable to prefill the file with templated content. This may include:
 - Any other data you may want to input manually
 
 This requires a complex template insertion system. Fortunately, Org ships with a
-powerful one: =org-capture=. However, org-capture was not designed for such use.
-Org-roam abuses =org-capture=, extending its syntax. To first understand how
-org-roam's templating system works, it may be useful to look into basic usage of
-=org-capture=.
+powerful one: ~org-capture~ (see info:org#capture). However, org-capture was not
+designed for such use. Org-roam abuses ~org-capture~, extending its syntax and
+capabilities. To first understand how org-roam's templating system works, it may
+be useful to look into basic usage of ~org-capture~.
 
-Org-roam's templates can be customized by modifying the variable
-=org-roam-capture-templates=.
+For these reasons, Org-roam capture templates are not compatible with regular
+~org-capture~. Hence, Org-roam's templates can be customized by instead
+modifying the variable ~org-roam-capture-templates~. Just like
+~org-capture-templates~, ~org-roam-capture-templates~ can contain multiple
+templates. If ~org-roam-capture-templates~ only contains one template, there
+will be no prompt for template selection.
 
 ** Template Walkthrough
 
@@ -376,9 +393,12 @@ the default template, reproduced below.
 5. ="%?"= is the template inserted on each call to =org-roam-capture--capture=.
    This template means don't insert any content, but place the cursor
    here.
-6. =:file-name= is the file-name template for a new note, if it doesn't
-   yet exist. This creates a file at path that looks like
-   =/path/to/org-roam-directory/20200213032037-foo.org=.
+6. =:file-name= is the file-name template for a new note, if it doesn't yet
+   exist. This creates a file at path that looks like
+   =/path/to/org-roam-directory/20200213032037-foo.org=. This template also
+   allows you to specify if you want the note to go into a subdirectory. For
+   example, the template =private/${slug}= will create notes in
+   =/path/to/org-roam-directory/private=.
 7. =:head= contains the initial template to be inserted (once only), at
    the beginning of the file. Here, the title global attribute is
    inserted.
@@ -567,6 +587,15 @@ The entry point to graph creation is =org-roam-graph=.
   2. a function accepting a single argument: the graph file path.
 
   =nil= uses =view-file= to view the graph.
+  
+  If you are using WSL2 and would like to open the graph in Windows, you can use the second option to set the browser and network file path:
+  
+  #+BEGIN_SRC emacs-lisp
+  (setq org-roam-graph-viewer
+      (lambda (file)
+        (let ((org-roam-graph-viewer "/mnt/c/Program Files/Mozilla Firefox/firefox.exe"))
+          (org-roam-graph--open (concat "file://///wsl$/Ubuntu" file)))))
+  #+END_SRC
 
 ** Graph Options
 
@@ -747,6 +776,27 @@ defaults write com.apple.LaunchServices/com.apple.launchservices.secure LSHandle
 
 Then restart your computer.
 
+For Windows, create a temporary =org-protocol.reg= file:
+
+#+BEGIN_SRC text
+REGEDIT4
+
+[HKEY_CLASSES_ROOT\org-protocol]
+@="URL:Org Protocol"
+"URL Protocol"=""
+[HKEY_CLASSES_ROOT\org-protocol\shell]
+[HKEY_CLASSES_ROOT\org-protocol\shell\open]
+[HKEY_CLASSES_ROOT\org-protocol\shell\open\command]
+@="\"C:\\Windows\\System32\\wsl.exe\" emacsclient \"%1\""
+#+END_SRC
+
+The above will forward the protocol to WSL. If you run Emacs natively on Windows, replace the last line with:
+
+#+BEGIN_SRC text
+@="\"c:\\path\\to\\emacs\\bin\\emacsclientw.exe\"  \"%1\""
+#+END_SRC
+
+After executing the .reg file, the protocol is registered and you can delete the file.
 
 ** The =roam-file= protocol
 
@@ -760,7 +810,7 @@ This protocol finds or creates a new note with a given ~roam_key~ (see [[*Anatom
 
 [[file:images/roam-ref.gif]]
 
-To use this, create a Firefox bookmarklet as follows:
+To use this, create the following [[https://en.wikipedia.org/wiki/Bookmarklet][bookmarklet]] in your browser:
 
 #+BEGIN_SRC javascript
 javascript:location.href =
@@ -774,7 +824,7 @@ or as a keybinding in ~qutebrowser~ in , using the ~config.py~ file (see
 [[https://github.com/qutebrowser/qutebrowser/blob/master/doc/help/configuring.asciidoc][Configuring qutebrowser]]):
 
 #+BEGIN_SRC python
-config.bind("<Ctrl-r>", "spawn bash -c 'emacsclient \"org-protocol://roam-ref?template=r&ref={url:pretty}&title={title}\" '")
+  config.bind("<Ctrl-r>", "open javascript:location.href='org-protocol://roam-ref?template=r&ref='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)")
 #+END_SRC
 
 where ~template~ is the template key for a template in
@@ -814,6 +864,22 @@ checker, to perform autofixes for the errors. For each error detected,
 =org-roam-doctor= will move the point to the current error, and pop-up a help
 window displaying the error message, as well as the list of actions that can be
 taken provided in =:actions=.
+* Performance Optimization
+** TODO Profiling Key Operations
+** Garbage Collection
+
+During the cache-build process, Org-roam generates a lot of in-memory
+data-structures (such as the Org file's AST), which are discarded after use. These structures are garbage collected at regular intervals (see [[info:elisp#Garbage Collection][info:elisp#Garbage Collection]]).
+
+Org-roam provides the option ~org-roam-db-gc-threshold~ to temporarily change
+the threshold value for GC to be triggered during these memory-intensive
+operations. To reduce the number of garbage collection processes, one may set
+~org-roam-db-gc-threshold~ to a high value (such as ~most-positive-fixnum~):
+
+#+BEGIN_SRC emacs-lisp
+  (setq org-roam-db-gc-threshold most-positive-fixnum)
+#+END_SRC
+
 * _ Copying
 :PROPERTIES:
 :COPYING:    t
@@ -850,6 +916,18 @@ General Public License for more details.
 ** Ecosystem
 A number of packages work well combined with Org-Roam:
 
+*** Browsing History with winner-mode
+
+~winner-mode~ is a global minor mode that allows one to undo and redo changes in the window configuration. It is included with GNU Emacs since version 20.
+
+~winner-mode~ can be used as a simple version of browser history for Org-roam. Each click through org-roam links (from both Org files and the backlinks buffer) causes changes in window configuration, which can be undone and redone using ~winner-mode~. To use ~winner-mode~, simply enable it, and bind the appropriate interactive functions:
+
+#+BEGIN_SRC emacs-lisp
+  (winner-mode +1)
+  (define-key winner-mode-map (kbd "<M-left>") #'winner-undo)
+  (define-key winner-mode-map (kbd "<M-right>") #'winner-redo)
+
+#+END_SRC
 *** Deft
    :PROPERTIES:
    :CUSTOM_ID: deft
