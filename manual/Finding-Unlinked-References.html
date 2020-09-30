@@ -15,18 +15,18 @@ General Public License for more details.
 <!-- Created by GNU Texinfo 6.5, http://www.gnu.org/software/texinfo/ -->
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>Org-roam Links (Org-roam User Manual)</title>
+<title>Finding Unlinked References (Org-roam User Manual)</title>
 
-<meta name="description" content="Org-roam Links (Org-roam User Manual)">
-<meta name="keywords" content="Org-roam Links (Org-roam User Manual)">
+<meta name="description" content="Finding Unlinked References (Org-roam User Manual)">
+<meta name="keywords" content="Finding Unlinked References (Org-roam User Manual)">
 <meta name="resource-type" content="document">
 <meta name="distribution" content="global">
 <meta name="Generator" content="makeinfo">
 <link href="index.html#Top" rel="start" title="Top">
 <link href="index.html#SEC_Contents" rel="contents" title="Table of Contents">
-<link href="Concepts-and-Configuration.html#Concepts-and-Configuration" rel="up" title="Concepts and Configuration">
-<link href="Org_002droam-Files.html#Org_002droam-Files" rel="next" title="Org-roam Files">
-<link href="The-Org_002droam-Buffer.html#The-Org_002droam-Buffer" rel="prev" title="The Org-roam Buffer">
+<link href="index.html#Top" rel="up" title="Top">
+<link href="Performance-Optimization.html#Performance-Optimization" rel="next" title="Performance Optimization">
+<link href="Diagnosing-and-Repairing-Files.html#Diagnosing-and-Repairing-Files" rel="prev" title="Diagnosing and Repairing Files">
 <style type="text/css">
 <!--
 a.summary-letter {text-decoration: none}
@@ -60,28 +60,26 @@ ul.no-bullet {list-style: none}
 </head>
 
 <body lang="en">
-<a name="Org_002droam-Links"></a>
+<a name="Finding-Unlinked-References"></a>
 <div class="header">
 <p>
-Next: <a href="Org_002droam-Files.html#Org_002droam-Files" accesskey="n" rel="next">Org-roam Files</a>, Previous: <a href="The-Org_002droam-Buffer.html#The-Org_002droam-Buffer" accesskey="p" rel="prev">The Org-roam Buffer</a>, Up: <a href="Concepts-and-Configuration.html#Concepts-and-Configuration" accesskey="u" rel="up">Concepts and Configuration</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
+Next: <a href="Performance-Optimization.html#Performance-Optimization" accesskey="n" rel="next">Performance Optimization</a>, Previous: <a href="Diagnosing-and-Repairing-Files.html#Diagnosing-and-Repairing-Files" accesskey="p" rel="prev">Diagnosing and Repairing Files</a>, Up: <a href="index.html#Top" accesskey="u" rel="up">Top</a> &nbsp; [<a href="index.html#SEC_Contents" title="Table of contents" rel="contents">Contents</a>]</p>
 </div>
 <hr>
-<a name="Org_002droam-Links-1"></a>
-<h3 class="section">8.3 Org-roam Links</h3>
+<a name="Finding-Unlinked-References-1"></a>
+<h2 class="chapter">17 Finding Unlinked References</h2>
 
-<p>Org-roam links are regular <code>file:</code> links in Org-mode. By default, links are
-inserted with the title as the link description with <code>org-roam-insert</code>.
+<p>Unlinked references are occurrences of strings of text that exactly match the
+title or alias of an existing note in the Org-roam database. Org-roam provides
+facilities for discovering these unlinked references, so one may decide whether
+to convert them into links.
 </p>
-<ul>
-<li> User Option: org-roam-link-title-format
-
-<p>To distinguish between org-roam links and regular links, one may choose to use
-special indicators for Org-roam links. Defaults to <code>&quot;%s&quot;</code>.
+<p>To use this feature, simply call <code>M-x org-roam-unlinked-references</code> from within
+an Org-roam note. Org-roam uses <a href="https://github.com/BurntSushi/ripgrep">ripgrep</a>, specifically a clever PCRE regex to
+find occurrences of the title or aliases of the currently open note in all
+Org-roam files. This thus requires a version of ripgrep that is compiled with
+PCRE support.
 </p>
-<p>If your version of Org is at least <code>9.2</code>, consider styling the link differently,
-by customizing the <code>org-roam-link</code>, and <code>org-roam-link-current</code> faces.
-</p></li></ul>
-
 
 
 
