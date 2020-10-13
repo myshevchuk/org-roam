@@ -8,13 +8,13 @@
 #+texinfo_dir_category: Emacs
 #+texinfo_dir_title: Org-roam: (org-roam).
 #+texinfo_dir_desc: Rudimentary Roam Replica for Emacs.
-#+subtitle: for version 1.2.1
+#+subtitle: for version 1.2.2
 
 #+options: H:4 num:3 toc:2 creator:t
 #+property: header-args :eval never
 #+texinfo: @noindent
 
-This manual is for Org-roam version 1.2.1.
+This manual is for Org-roam version 1.2.2.
 
 #+BEGIN_QUOTE
 Copyright (C) 2020-2020 Jethro Kuan <jethrokuan95@gmail.com>
@@ -600,10 +600,15 @@ The Org-roam buffer displays backlinks for the currently active Org-roam note.
   Height of ~org-roam-buffer~. Has an effect only if ~org-roam-buffer-position~ is
   ~'top~ or ~'bottom~.
 
-- User Option: org-roam-buffer-no-delete-other-windows
+- User Option: org-roam-buffer-window-parameters
 
-  The ~no-delete-window~ parameter for the org-roam buffer. Setting it to ~'t~ prevents the window from being deleted when calling ~delete-other-windows~.
+  Additional window parameters for the org-roam-buffer side window.
 
+  For example one can prevent the window from being deleted when calling
+  ~delete-other-windows~, by setting it with the following:
+
+  ~(setq org-roam-buffer-window-parameters '((no-other-window . t)))~
+  
 ** Org-roam Files
 
 Org-roam files are created and prefilled using Org-roam's templating
@@ -1284,6 +1289,17 @@ file within that directory, at least once.
 ** How do I migrate from Roam Research?
 
 Fabio has produced a command-line tool that converts markdown files exported from Roam Research into Org-roam compatible markdown. More instructions are provided [[https://github.com/fabioberger/roam-migration][in the repository]].
+
+** How do I create a note whose title already matches one of the candidates?
+
+This situation arises when, for example, one would like to create a note titled
+"bar" when "barricade" already exists.
+
+The solution is dependent on the mini-buffer completion framework in use. Here
+are the solutions:
+
+- Ivy :: call ~ivy-immediate-done~, typically bound to ~C-M-j~. Alternatively, set ~ivy-use-selectable-prompt~ to ~t~, so that "bar" is now selectable.
+- Helm :: Org-roam should provide a selectable "[?] bar" candidate at the top of the candidate list.
 
 # Local Variables:
 # eval: (require 'ol-info)
