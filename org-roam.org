@@ -358,9 +358,23 @@ nothing right now, since there are no notes in the directory. Entering the title
 of the note you wish to create, and pressing ~RET~ should begin the note
 creation process. This process uses ~org-capture~'s templating system, and can
 be customized (see [[*The Templating System][The Templating System]]). Using the default template, pressing
-~C-c C-c~ finishes the note capture. Running ~M-x org-roam-find-file~ again
-should show the note you have created, and selecting that entry will bring you
-to that note.
+~C-c C-c~ finishes the note capture.
+
+By default, Org-roam updates the cache asynchronously in the background to
+avoid getting in the way of writing. Org-roam queues updates to the files,
+waits for you to be idle for 2 seconds, and then automatically triggers
+updating the cache. After the cache has been updated, running ~M-x
+org-roam-find-file~ again should show the note you have created, and selecting
+that entry will bring you to that note [fn:1]. One can customize the waiting
+time by setting ~org-roam-db-update-idle-seconds~; or change the cache update
+to be triggered immediately after buffer save by setting
+~org-roam-db-update-method~ to ~'immediate~.
+
+For experienced ~org-capture~ users, the behavior of ~M-x org-roam-find-file~ 
+may seem unfamiliar: after finishing a capture with ~C-c C-c~, you are returned  
+not to the original buffer from which you called ~M-x org-roam-find-file~, but 
+to a buffer pointing to the note you just created. For the usual ~org-capture~ 
+behavior you can call ~M-x org-roam-capture~ instead of ~M-x org-roam-find-file~. 
 
 Org-roam makes it easy to create notes, and link them together. To link notes
 together, we call ~M-x org-roam-insert~. This brings up a prompt with a list of
@@ -1079,41 +1093,40 @@ make the new policy take effect.
 See [[https://www.chromium.org/administrators/linux-quick-start][here]] for more info on the ~/etc/opt/chrome/policies/managed~ directory and
 [[https://cloud.google.com/docs/chrome-enterprise/policies/?policy=ExternalProtocolDialogShowAlwaysOpenCheckbox][here]] for information on the ~ExternalProtocolDialogShowAlwaysOpenCheckbox~ policy.
 
-For MacOS, one solution is to use [[https://github.com/sveinbjornt/Platypus][Platypus]]. Here are the instructions for
-setting up with Platypus and Chrome:
+For MacOS, we need to create our own application.
 
-1. Install and launch Platypus (with [[https://brew.sh/][Homebrew]]):
+1. Launch Script Editor
+2. Use the following script, paying attention to the path to ~emacsclient~:
 
-#+BEGIN_SRC bash
-brew cask install platypus
-#+END_SRC
+#+begin_src emacs-lisp
+  on open location this_URL
+      set EC to "/usr/local/bin/emacsclient --no-wait "
+      set filePath to quoted form of this_URL
+      do shell script EC & filePath
+      tell application "Emacs" to activate
+  end open location
+#+end_src
 
-2. Create a script ~launch_emacs.sh~:
+3. Save the script in ~/Applications/OrgProtocolClient.app~, changing the script type to
+   "Application", rather than "Script".
+4. Edit ~/Applications/OrgProtocolClient.app/Contents/Info.plist~, adding the
+   following before the last ~</dict>~ tag:
 
-#+BEGIN_SRC bash
-#!/usr/bin/env bash
-/usr/local/bin/emacsclient --no-wait $1
-#+END_SRC
+#+begin_src text
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key>
+      <string>org-protocol handler</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>org-protocol</string>
+      </array>
+    </dict>
+  </array>
+#+end_src
 
-3. Create a Platypus app with the following settings:
-
-| Setting                        | Value                     |
-|--------------------------------+---------------------------|
-| App Name                       | "OrgProtocol"             |
-| Script Type                    | "env" · "/usr/bin/env"    |
-| Script Path                    | "path/to/launch-emacs.sh" |
-| Interface                      | None                      |
-| Accept dropped items           | true                      |
-| Remain running after execution | false                     |
-
-
-Inside ~Settings~:
-
-| Setting                        | Value          |
-|--------------------------------+----------------|
-| Accept dropped files           | true           |
-| Register as URI scheme handler | true           |
-| Protocol                       | "org-protocol" |
+5. Save the file, and run the ~OrgProtocolClient.app~ to register the protocol.
 
 To disable the "confirm" prompt in Chrome, you can also make Chrome
 show a checkbox to tick, so that the ~OrgProtocol~ app will be used
@@ -1314,7 +1327,7 @@ You can navigate between daily-notes:
 
 Org-roam provides a utility for diagnosing and repairing problematic files via
 ~org-roam-doctor~. By default, ~org-roam-doctor~ runs the check on the current
-Org-roam file. To run the check only for the current file, run ~C-u M-x
+Org-roam file. To run the check only for all Org-roam files, run ~C-u M-x
 org-roam-doctor~, but note that this may take some time.
 
 - Function: org-roam-doctor &optional this-buffer
@@ -1659,6 +1672,9 @@ are the solutions:
 :END:
 
 * Footnotes
+
+[fn:1] Depending on your completion framework, you may need to press TAB to
+see the list.
 [fn:roam] To understand more about Roam, a collection of links are available in [[*Note-taking Workflows][Note-taking Workflows]].
  
 # Local Variables:
